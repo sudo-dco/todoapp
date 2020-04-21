@@ -2,30 +2,70 @@ import * as todos_dom from './modules/todos-dom.js';
 import * as projects_dom from './modules/projects-dom.js';
 import * as todos from './modules/todos.js';
 //import * as projects from './modules/projects.js';
+import { formatRelative, parseISO, formatDistance, isBefore, isAfter, format } from 'date-fns';
 import "./style.css";
 
 const main = (() => {
+    function storageAvailable(type) {
+        var storage;
+        try {
+            storage = window[type];
+            var x = '__storage_test__';
+            storage.setItem(x, x);
+            storage.removeItem(x);
+            return true;
+        }
+        catch(e) {
+            return e instanceof DOMException && (
+                // everything except Firefox
+                e.code === 22 ||
+                // Firefox
+                e.code === 1014 ||
+                // test name field too, because code might not be present
+                // everything except Firefox
+                e.name === 'QuotaExceededError' ||
+                // Firefox
+                e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+                // acknowledge QuotaExceededError only if there's something already stored
+                (storage && storage.length !== 0);
+        }
+    }
+
     let projectList = [];
+
+    if (storageAvailable('localStorage')) {
+        if (!localStorage.getItem("LSprojectList")) {
+            localStorage.setItem("LSprojectList", projectList);
+        }
+        else {
+            projectList = JSON.parse(localStorage.getItem("LSprojectList"));
+        }
+    }
 
     const generateRNG = () => { // use to assign random ID number to obj
         return Math.floor((Math.random() * 100) + 1);
     }
 
-    const createProject = (name) => {
+    const trackIDs = () => {
+        const usedIDs = [0,1];
         let randomNum;
-        //grab currently used ID's
-        const ids = main.projectList.map((x) => {return x.id});
 
         do { // only use number if it's not already in use
             randomNum = generateRNG();
         }
-        while (ids.includes(randomNum))
-    
+        while (usedIDs.includes(randomNum))
+
+        usedIDs.push(randomNum);
+
+        return randomNum;
+    }
+
+    const createProject = (name) => {
         const todoList = [];
     
         return {
             name,
-            id: randomNum,
+            id: trackIDs(),
             todoList
         }
     }
@@ -36,71 +76,132 @@ const main = (() => {
         return obj
     }
 
-    const projectSelector = (() => {
-        const projectButtons = document.querySelectorAll(".project-names");
-        projectButtons.forEach((button) => {
-            button.addEventListener("click", function (e) {
-                //console.log(e.target.id);
+    const inputVaildation = (dom) => {
+        //if text is empty, change dom innertext to "enter a valid name"
+        if (dom.value == "") {
+            dom.value = "Please enter a valid name";
+        }
+        else {
+            return true;
+        }
+    }
 
-                // clear todo list dom
-                document.getElementById("todolist-container").innerHTML = "";
-                
-                // add todo list from newly selected project
-                todos_dom.todoListDom.showTodoList(projectList[(e.target.id).charAt(e.target.id.length - 1)].todoList)
-            })
-        })
-    })();
+    const clearInput = (element) => {
+        element.value = "";
+    }
 
     console.log(projectList);
 
     return {
         projectList,
         createProject,
-        objFinder
+        objFinder,
+        inputVaildation,
+        clearInput,
+        trackIDs
     }
 
 })();
 
-const makeExampleProject = (() => {
-    main.projectList.push(main.createProject("Shopping"));
-    main.projectList.push(main.createProject("Reading List"));
-    main.projectList.push(main.createProject("Work"));
+// const makeExampleProject = (() => {
+//     main.projectList.push(main.createProject("Shopping"));
+//     main.projectList.push(main.createProject("Reading List"));
+//     main.projectList.push(main.createProject("Work"));
+// })();
 
-    
-})();
+// const example = {
+//     id: 0,
+//     name: "Getting Started",
+//     todoList: [
+//         {
+//             desc: "Things to pick up at grocery store",
+//             dueDate: "2020-04-18",
+//             id: 1,
+//             notes: "This is an example note",
+//             priority: "high",
+//             title: "Example Note"
+//         }
+//     ]
+// }
 
 const initProjList = (() => { // initialize project list
-    projects_dom.func.createProjectList(main.projectList);
+    const projListDom = projects_dom.func.createProjectList(main.projectList);
     const addDoms = projects_dom.func.createAddForm();
-    console.log(addDoms);
+
+    const showDefaultProject = (() => {
+        // always show projectList[0] on load
+        if (main.projectList[0]) {
+            document.getElementById(`project-name-${main.projectList[0].id}`).classList.add("selected");
+        }
+    })();
+
+    const showSelectedProj = (target) => {
+        target.classList.add("selected");
+    }
+
+    const removeSelection = (selected) => {
+        // query for project names class
+        // for each project name, if not equal to e.target.id, remove class selected
+
+        const headers = document.querySelectorAll(".project-names");
+
+        headers.forEach((element) => {
+            if (selected != element.id.slice(-2)) {
+                element.classList.remove("selected");
+            }
+        })
+    }
+    
+    const projectSelector = (target) => {
+        // take id from selected header and find associated obj
+        let currentSelection = main.objFinder(target.id.slice(-2));
+
+        // clear selected class from other elements
+        removeSelection(currentSelection);
+
+        // add selected class to selected header
+        showSelectedProj(target);
+
+        // clear todo list DOM
+        const todoContainer = document.getElementById("todolist-container");
+        todoContainer.innerHTML = "";
+
+        // populate new todos
+        todos_dom.func.populateTodoList(currentSelection.todoList, todoContainer);
+
+        // close add/expand form if it's open
+        todos_dom.func.toggleAddForm("close");
+    };
 
     return {
-        addDoms
+        projListDom,
+        addDoms,
+        projectSelector
     }
-})();
-
-const initProjBtns = (() => {   // initialize all project list button events
-    projects_dom.func.delProjectBtn();
-    projects_dom.func.editProjectBtn();
-    projects_dom.func.editDoneBtn();
-    //projects_dom.func.addProjectBtn();
 })();
 
 const makeExampleTodos = (() => {
-    const todo1 = todos.createTodo("Pick up groceries","Things to pick up at grocery store","2020-4-8","high","This is an example note")
-    main.projectList[0].todoList.push(todo1);
+    // const todo1 = todos.createTodo("Pick up groceries", "Things to pick up at grocery store", "2020-04-18", "high", "This is an example note")
+    // main.projectList[0].todoList.push(todo1);
 
-    const todo2 = todos.createTodo("Drop off mail at post office","Things to pick up at Home Depot","2020-4-10","low","This is an example note")
-    main.projectList[0].todoList.push(todo2);
+    // const todo2 = todos.createTodo("Drop off mail at post office","Things to pick up at Home Depot","2020-04-18","low","This is an example note")
+    // main.projectList[0].todoList.push(todo2);
 
-    const todo3 = todos.createTodo("Read Harry Potter","","2020-4-10","low","This is an example note")
-    main.projectList[1].todoList.push(todo3);
+    // const todo3 = todos.createTodo("Read Harry Potter","Example Desc","2020-04-18","low","This is an example note")
+    // main.projectList[1].todoList.push(todo3);
 
-    const todo4 = todos.createTodo("Read Clean Code","","2020-4-10","low","This is an example note")
-    main.projectList[1].todoList.push(todo4);
-
-    todos_dom.todoListDom.showTodoList(main.projectList[0].todoList);
-    todos_dom.todoListDom.showAddForm();
+    // const todo4 = todos.createTodo("Read Clean Code","Example Desc","2020-04-18","low","This is an example note")
+    // main.projectList[1].todoList.push(todo4);
+    
+    if (main.projectList[0] != undefined) {
+        todos_dom.func.createTodoList(main.projectList[0].todoList);
+    }
+    else {
+        todos_dom.func.createTodoList();
+    }
+    
+    // todos_dom.func.showAddForm();
+    todos_dom.func.createAddForm();
 
 })();
 

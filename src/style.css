@@ -1,11 +1,43 @@
-/* h3 {
-    pointer-events: none;
-} */
-
-#todoslist {
-    display: none;
+.selected {
+    border: 1px solid black;
 }
 
 #todo-addformcontainer {
     display: none;
+}
+
+.capitialize {
+    text-transform: capitalize;
+}
+
+.strike-out {
+    text-decoration: line-through;
+}
+
+body {
+    display: flex;
+}
+
+/* container for todo add btn and todo list*/
+#todoslist { 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60%;
+    overflow: auto;
+}
+
+/* class for all todos */
+.todo-titles { 
+    display: flex;
+    justify-content: space-between;
+}
+
+/* move checkbox to front of row */
+.todo-titles :last-child {
+    order: -1;
+}
+
+#todolist-container {
+    align-self: flex-start;
 }

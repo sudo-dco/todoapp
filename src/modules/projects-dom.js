@@ -1,4 +1,4 @@
-import { main } from '../index.js'
+import { main, initProjList } from '../index.js'
 
 const func = (() => {
     let targetId;
@@ -11,17 +11,13 @@ const func = (() => {
             listDiv.innerHTML = "<h2>Projects:</h2>";
             _projectListDiv.append(listDiv);
         
-        list.forEach((obj) => {
-            let newProject = document.createElement("div");
-            newProject.id = `project-div-${obj.id}`;
-            newProject.classList.add("project-divs");
-            newProject.innerHTML = `
-                <h3 id="project-name-${obj.id}" class="project-names">${obj.name}</h3>
-                <button type="button" id="edit-btn-${obj.id}" class="project-edit-btn">Edit</button>
-                <button type="button" id="del-btn-${obj.id}" class="project-del-btn">Delete</button>
-            `
-            listDiv.append(newProject);
-        });
+        if (list) {
+            list.forEach((obj) => {
+                listDiv.append(projectTemplate(obj));
+            });
+        }
+    
+        return listDiv;
 
     };
 
@@ -29,17 +25,37 @@ const func = (() => {
         let newProject = document.createElement("div");
         newProject.id = `project-div-${obj.id}`;
         newProject.classList.add("project-divs");
-        newProject.innerHTML = `
-            <h3 id="project-name-${obj.id}" class="project-names">${obj.name}</h3>
-            <button type="button" id="edit-btn-${obj.id}" class="project-edit-btn">Edit</button>
-            <button type="button" id="del-btn-${obj.id}" class="project-del-btn">Delete</button>
-        `
+
+        const header = document.createElement("h3");
+        header.id = `project-name-${obj.id}`;
+        header.classList.add("project-names");
+        header.innerText = `${obj.name}`;
+        header.addEventListener("click", function (e) {
+            initProjList.projectSelector(e.target);
+        })
+        newProject.append(header);
+
+        const editBtn = document.createElement("button");
+        editBtn.id = `edit-btn-${obj.id}`;
+        editBtn.classList.add("project-edit-btn");
+        editBtn.innerText = "Edit";
+        editBtn.addEventListener("click", function (e) {
+            targetId = e.target.id.slice(-2);
+            toggleProjectEditForm("open");
+        })
+        newProject.append(editBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.id = `del-btn-${obj.id}`;
+        delBtn.classList.add("project-del-btn");
+        delBtn.innerText = "Delete";
+        delBtn.addEventListener("click", function (e) {
+            targetId = e.target.id.slice(-2);
+            delProject(targetId);
+        })
+        newProject.append(delBtn);
 
         return newProject;
-    }
-
-    const showDefaultProject = () => {
-        // always show projectList[0] on load
     }
 
     const projectEditForm = (() => { // creates edit form
@@ -48,78 +64,81 @@ const func = (() => {
         editForm.style.display = "none";
         editForm.innerHTML = `
             <label for="edit-title">Project Name:</label>
-            <input type="text" id="edit-title">
-            <button type="button" id="edit-done">Apply</button>
         `
+        const editTitleBox = document.createElement("input");
+        editTitleBox.id = "edit-title";
+        editTitleBox.type = "text";
+        editForm.append(editTitleBox);
+
+        const editDoneBtn = document.createElement("button");
+        editDoneBtn.id = "edit-done"
+        editDoneBtn.innerText = "Apply Changes";
+        editDoneBtn.addEventListener("click", function () {
+            // check for text
+            if (main.inputVaildation(editTitleBox)) {
+                updateAll(editTitleBox); // takes in editTitleBox dom to pass to updateObj
+                toggleProjectEditForm("close");
+            }
+        })
+        editForm.append(editDoneBtn);
+
+        const editCloseBtn = document.createElement("button");
+        editCloseBtn.id = "edit-close";
+        editCloseBtn.innerText = "Close";
+        editCloseBtn.addEventListener("click", function () {
+            toggleProjectEditForm("close");
+        })
+        editForm.append(editCloseBtn);
 
         _projectListDiv.append(editForm);
 
     })();
 
-    const editProjectBtn = () => { // add btn functionality
-        const editBtns = document.querySelectorAll(".project-edit-btn");
-
-        editBtns.forEach(btn => {
-            btn.addEventListener("click", function (e) {
-                targetId = e.target.id.slice(-2);
-
-                toggleProjectEditForm("open");
-            })
-        })
-    }
-
-    const editDoneBtn = () => {
-        document.getElementById("edit-done").addEventListener("click", function () {
-
-            updateAll();
-            toggleProjectEditForm("close");
-        });
-    }
-
-    const delProjectBtn = () => {
-        const delBtns = document.querySelectorAll(".project-del-btn");
-
-        delBtns.forEach(btn => {
-            btn.addEventListener("click", function (e) {
-                //take id and pass it to del function
-                const id = e.target.id.slice(-2);
-
-                delProject(id);
-            })
-        })
-    };
 
     const addProject = (name) => {
-        //pass value to run create object
-        main.createProject(name);
+        // pass value to run create object
+        const newProj = main.createProject(name);
         
-        //update html
+        // push to array
+        main.projectList.push(newProj)
+        
+        // update local storage
+        localStorage.setItem("LSprojectList", JSON.stringify(main.projectList));
+
+        // create html template and update project container
+        initProjList.projListDom.append(projectTemplate(newProj))
+
+        // set new project as selected and show new todo list
+        initProjList.projectSelector(document.getElementById(`project-name-${newProj.id}`));
     }
 
     const toggleProjectEditForm = (action) => {
-        const editFormBtn = document.getElementById("edit-form");
-        
+        const editForm = document.getElementById("edit-form");
+
         if (action == "open") {
-            editFormBtn.style.display = "block";
+            editForm.style.display = "block";
         }
         else {
-            editFormBtn.style.display = "none";
-            editFormBtn.querySelector("#edit-title").value = ""; // clear input after user clicks apply
+            editForm.style.display = "none";
+
+            editForm.children[1].value = "";
         }
 
     }
 
-    const updateAll = () => {
-        updateObj(targetId);       
+    const updateAll = (dom) => {
+        updateObj(targetId, dom);       
         updateHTML(targetId);
     }
 
-    const updateObj = (idNum) => {
-            let obj = main.projectList.find(({ id }) => id == idNum);
+    const updateObj = (idNum, dom) => {
+        let obj = main.projectList.find(({ id }) => id == idNum);
+        obj.name = dom.value;
 
-            obj.name = document.getElementById("edit-title").value;
+        // update local storage
+        localStorage.setItem("LSprojectList", main.projectList)
 
-            console.log(main.projectList);
+        console.log(main.projectList);
     }
 
     const updateHTML = (idNum, action) => {
@@ -140,6 +159,9 @@ const func = (() => {
         let index = main.projectList.findIndex(({ id }) => id == idNum);
         main.projectList.splice(index, 1);
 
+        // update local storage
+        localStorage.setItem("LSprojectList", JSON.stringify(main.projectList));
+
         console.log(main.projectList);
 
         // run updatehtml to delete div
@@ -159,7 +181,13 @@ const func = (() => {
         projAdd.id = "proj-add";
         projAdd.innerText = "Add";
         projAdd.addEventListener("click", function () {
-            addProject(projTitle.value);
+            // check for text
+            if (main.inputVaildation(projTitle)) {
+                addProject(projTitle.value);
+                main.clearInput(projTitle);
+            }
+
+            console.log(main.projectList);
         })
         projectAddFormContainer.append(projAdd);
 
@@ -171,17 +199,9 @@ const func = (() => {
         }
     }
 
-    const clearInput = (element) => {
-        element.value = "";
-    }
-
     return {
         createProjectList,
         createAddForm,
-        editProjectBtn,
-        delProjectBtn,
-        editProjectBtn,
-        editDoneBtn,
     }
 
 })();

@@ -1,40 +1,123 @@
-const todoListDom = (() => {
+import * as todos from './todos.js';
+import { main } from '../index.js'
+import { parseISO, format } from 'date-fns';
+
+const func = (() => {
     const _todosListDiv = document.getElementById("todoslist");
 
-    // show todo list in div
-    const showTodoList = (list) => {
-        let listDiv;
+    const todoHTMLTemplate = (obj) => {
+        let newTodo = document.createElement("div");
+        newTodo.id = `todo-${obj.id}`;
+        newTodo.classList.add("todo-titles");
 
-        if (document.getElementById("todolist-container") == null) {
-            listDiv = document.createElement("div");
-            listDiv.id = "todolist-container";
-            _todosListDiv.append(listDiv);
+        const title = document.createElement("h3");
+        title.id = `todo-html-title-${obj.id}`;
+        title.innerText = `${obj.title}`;
+        newTodo.append(title);
+
+        newTodo.innerHTML += `
+            <p id="todo-html-desc-${obj.id}">${obj.desc}</p>
+            <p id="todo-html-dueDate-${obj.id}">${formatDate(obj.dueDate)}</p>
+            <p id="todo-html-priority-${obj.id}">${obj.priority}</p>
+        `
+
+        const expandBtn = document.createElement("button");
+        expandBtn.id = `todo-expand-btn-${obj.id}`
+        expandBtn.classList.add("todo-expand-btns");
+        expandBtn.innerText = "Expand";
+        expandBtn.addEventListener("click", function (e) {
+            // open todo add form with info filled in from todo
+            expandTodo(e);
+        })
+        newTodo.append(expandBtn);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.id = `todo-delete-btn-${obj.id}`
+        deleteBtn.classList.add("todo-delete-btns");
+        deleteBtn.innerText = "Delete";
+        deleteBtn.addEventListener("click", function (e) {
+            // delete todo from obj array
+            deleteTodo(e);
+        })
+        newTodo.append(deleteBtn);
+
+        const checkbox = document.createElement("input");
+        checkbox.id = `checkbox-${obj.id}`;
+        checkbox.type = "checkbox";
+        checkbox.addEventListener("change", function () {
+            if (checkbox.checked) {
+                document.getElementById(`todo-html-title-${obj.id}`).classList.add("strike-out");
+            }
+            else {
+                document.getElementById(`todo-html-title-${obj.id}`).classList.remove("strike-out");
+            }
+        })
+        newTodo.append(checkbox);
+
+        return newTodo;
+    }
+
+    // show todo list in div
+    const createTodoList = (arr) => { // takes in project todo array
+            let listContainer = document.createElement("div");
+            listContainer.id = "todolist-container";
+
+            // btn for toggling add form div
+            const showFormBtn = document.createElement("button");
+            showFormBtn.id = "show-form-btn";
+            showFormBtn.innerText = "Add";
+            showFormBtn.addEventListener("click", function() {
+                clearFields();
+                toggleAddForm();
+            });
+            _todosListDiv.append(showFormBtn);
+
+            _todosListDiv.append(listContainer);
+        
+
+        if (arr) {
+            populateTodoList(arr, listContainer);
+        }
+    }
+
+    const populateTodoList = (arr, dom) => { // takes in project todo array
+        arr.forEach((obj) => {
+            dom.append(todoHTMLTemplate(obj));
+        })
+    }
+
+    const formatDate = (date) => {
+        return format(parseISO(date), 'MMMM do');
+    }
+
+    const toggleAddForm = (action) => {
+        const addForm = document.getElementById("todo-addformcontainer");
+
+        if (addForm.style.display == "block" || action == "close") {
+            addForm.style.display = "none";
+        }
+        else if (action == "open") {
+            addForm.style.display = "block";
         }
         else {
-            listDiv = document.getElementById("todolist-container");
+            addForm.style.display = "block";
         }
-        
-        list.forEach((obj, i) => {
-            let newTodo = document.createElement("div");
-            newTodo.id = `todo-${i}`;
-            newTodo.classList.add("todo-titles");
-            newTodo.innerHTML = `
-                <h3>${obj.title}<h3>
-                <p>${obj.desc}</p>
-                <p>${obj.dueDate}</p>
-                <p>${obj.priority}</p>
-                <button type="button">Expand</button>
-                <button type="button">Delete</button>
-            `
-            listDiv.append(newTodo);
-        });
-        
-        
-    } 
+    }
+
+    // const showAddForm = () => {
+    //     const showFormBtn = document.createElement("button");
+    //     showFormBtn.id = "show-form-btn";
+    //     showFormBtn.innerText = "Add";
+    //     showFormBtn.addEventListener("click", function() {
+    //         clearFields();
+    //         toggleAddForm();
+    //     });
+    //     _todosListDiv.append(showFormBtn);
+    // };
 
     // show todo add box
-    const showAddForm = () => {
-        const addForm = document.createElement("div");
+    const createAddForm = () => {
+        const addForm = document.createElement("form");
         addForm.id = "todo-addformcontainer";
         addForm.innerHTML = `
             <label for="todo-title">Title:</label>
@@ -44,7 +127,7 @@ const todoListDom = (() => {
             <input type="text" id="todo-desc">
 
             <label for="todo-date">Date:</label>
-            <input type="date" id="todo-date" min="2020-4-7">
+            <input type="date" id="todo-dueDate" value=${new Date()}>
             
             <label for="todo-priority">Priority:</label>
             <select id="todo-priority">
@@ -54,69 +137,244 @@ const todoListDom = (() => {
             </select>
 
             <label for="todo-notes">Notes:</label>
-            <textarea id="todo-notes" cols="25" rows="7">Example Notes</textarea>
-            <button type="button">Add</button>
+            <textarea id="todo-notes" cols="30" rows="7">Example Notes</textarea>
         `
+
+        const addBtn = document.createElement("button");
+        addBtn.id = "todo-add-btn";
+        addBtn.innerText = "Add";
+        addBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            addTodo();
+            toggleAddForm("close");
+            console.log("AFTER ADD TODO: ", main.projectList);
+        })
+        addForm.append(addBtn);
+
+        const editBtn = document.createElement("button");
+        editBtn.id = "todo-edit-done";
+        editBtn.innerHTML = "Apply Changes";
+        editBtn.style.display = "none";
+        editBtn.addEventListener("click", function (e) {
+            //apply changes when done editing todo
+            e.preventDefault();
+            expandDone();
+        })
+        addForm.append(editBtn);
+
         _todosListDiv.append(addForm);
+    }
+
+    // create todo
+    const addTodo = () => {
+        // grab info from form, create todo object
+        const newTodo = todos.createTodo(...getTodoInfo())
+        
+        console.log(newTodo);
+        
+        // find currently selected project and append to obj todolist
+        let obj = findSelected();
+        obj.todoList.push(newTodo);
+
+        // update local storage
+        updateLocalStorage();
+        
+        // create html template and append template to div
+        document.getElementById("todolist-container").append(todoHTMLTemplate(newTodo))
+    }
+
+    // delete todo
+    const deleteTodo = (e) => {
+        // get todo obj id from e.target.id
+        let idNum = e.target.id.slice(-2);
+
+        // find project obj array
+        let obj = findSelected();
+
+        // find todo obj, find index in array, remove element from array
+        let todoObj = obj.todoList.find(({ id }) => id == idNum);
+        //console.log(obj.todoList.indexOf(todoObj));
+        obj.todoList.splice(obj.todoList.indexOf(todoObj), 1);
+
+        // update local storage
+        updateLocalStorage();
+
+        // remove html div id="todo-id"
+        document.getElementById(`todo-${todoObj.id}`).remove();
+
+        console.log("AFTER TODO DELETE: ", obj.todoList);
+    }
+
+    const expandTodo = (e) => {
+        // check that add form is not already open
+        toggleAddForm("close");
+
+        // find project obj array
+        let obj = findSelected();
+
+        // use id to find todo obj
+        let idNum = e.target.id.slice(-2);
+        let todoObj = obj.todoList.find(({ id }) => id == idNum);
+
+        // add data id to add form for expandDone function to find todo object
+        selectedTodo(e);
+
+        // fill in with info from selected todo
+        fillTodoInfo(todoObj);
+
+        //hide add button and show apply changes button
+        toggleEditBtn("edit");
+
+        // show add form with edit mode action
+        toggleAddForm("open");
+    }
+
+    const expandDone = () => {
+        // take new input values and apply them to todo obj
+        const form = document.getElementById("todo-addformcontainer");
+        
+        // find project obj array
+        let obj = findSelected();
+
+        // GET ID # FROM EXPAND BTN
+        let idNum = form.getAttribute("data-id");
+        let todoObj = obj.todoList.find(({ id }) => id == idNum);
+
+        // update values in todo object
+        for (let element of form.elements) {
+            if (element.type != "submit") {
+                todoObj[(element.id).split("-")[1]] = element.value;
+            }
+        }
+
+        // update local storage
+        updateLocalStorage();
+
+        // UPDATE HTML
+        updateHTML(todoObj);
+
+        toggleEditBtn("close")
+
+        // CLOSE FORM
+        toggleAddForm("close");
+
+        console.log("AFTER APPLYING CHANGES: ", obj.todoList);
+    }
+
+    const toggleEditBtn = (action) => {
+        const addBtn = document.getElementById("todo-add-btn")
+        const editBtn = document.getElementById("todo-edit-done");
+
+        if (action == "edit") {
+            addBtn.style.display = "none";
+            editBtn.style.display = "block";
+        }
+        else {
+            addBtn.style.display = "block";
+            editBtn.style.display = "none";
+        }
+        
+
+    }
+
+    const findSelected = () => {
+        let obj;
+
+        if (!document.querySelector(".selected")) { // if nothing selected, select first project in list
+            document.getElementById(`project-name-${main.projectList[0].id}`).classList.add("selected");
+        }
+        else {
+            let selected = document.querySelector(".selected");
+            obj = main.objFinder(selected.id.slice(-2));
+        }
+        
+
+        return obj;
+    }
+
+    const fillTodoInfo = (obj) => {
+        const form = document.getElementById("todo-addformcontainer");
+
+        for (let element of form.elements) {
+            if (element.type != "submit") {
+                //console.log((element.id).split("-")[1]);
+
+                element.value = obj[(element.id).split("-")[1]];
+            }
+        }
     }
 
     // get todos info
     const getTodoInfo = () => {
-        const title = document.getElementById("todo-title");
-        const desc = document.getElementById("todo-desc");
-        const dueDate = document.getElementById("todo-date");
-        const priority = document.getElementById("todo-priority");
-        const notes = document.getElementById("todo-notes");
+        let info = [];
 
-        return {
-            title,
-            desc,
-            dueDate,
-            priority,
-            notes
+        const form = document.getElementById("todo-addformcontainer");
+
+        for (let element of form.elements) {
+            if (element.type != "submit") {
+                info.push(element.value);
+            }
         }
+
+        return info;
+    }
+
+    const selectedTodo = (e) => {
+        const form = document.getElementById("todo-addformcontainer");
+        form.setAttribute("data-id", `${e.target.id.slice(-2)}`);
+    }
+
+    const updateHTML = (todoObj) => {
+        // get todo div
+
+        // loop through elements and update with info from todo object
+        document.getElementById(`todo-html-title-${todoObj.id}`).innerText = todoObj["title"];
+        document.getElementById(`todo-html-desc-${todoObj.id}`).innerText = todoObj["desc"];
+        document.getElementById(`todo-html-dueDate-${todoObj.id}`).innerText = formatDate(todoObj["dueDate"]);
+        document.getElementById(`todo-html-priority-${todoObj.id}`).innerText = todoObj["priority"];
     }
     
-    // add todo to div
-    const todosAdd = (obj) => {
-
+    const clearFields = () => {
+        const form = document.getElementById("todo-addformcontainer");
+        for (let element of form.elements) {
+            if (element.type != "submit") {
+                if (element.type == "date") {
+                    element.value = format(new Date(), "yyyy-MM-dd");
+                }
+                else {
+                    element.value = "";
+                }
+            }
+        }
     }
 
-    // remove to do from div
-
-    // expand button
-
-    //checkbox
-
-    const clearTodoDom = () => {
-        const listDiv = document.getElementById("todolist-container");
-        listDiv.innerHTML = "";
+    const updateLocalStorage = () => {
+        // update local storage
+        localStorage.setItem("LSprojectList", JSON.stringify(main.projectList));
     }
+
+    // const statusDone = (id) => {
+    //     // strike out title when box is checked to show it's done
+    //     const checkbox = document.getElementById(`checkbox-${id}`);
+    //     checkbox.addEventListener("change", () => {
+    //         if (checkbox.checked) {
+    //             document.getElementById(`todo-html-title-${id}`).classList.add("strike-out");
+    //         }
+    //         else {
+    //             document.getElementById(`todo-html-title-${id}`).classList.remove("strike-out");
+    //         }
+    //     })
+    // }
 
     return {
-        showTodoList,
-        showAddForm
+        createTodoList,
+        createAddForm,
+        populateTodoList,
+        toggleAddForm
     }
-
-})();
-
-const editTodosDom = (() => {
-    const editTodoDiv = document.getElementById("todo-list");
-
-    // option to change date button
-    //document.getElementById("todo-date").value = obj.dueDate;
-
-    // option to change priority
-    // set priority to match obj priority
-    //document.getElementById("todo-priority").value = obj.priority;
-
-    // show notes box
-
-    // create save button
 
 })();
 
 export { 
-    todoListDom,
-    editTodosDom
+    func
 }

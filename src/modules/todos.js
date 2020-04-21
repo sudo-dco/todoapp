@@ -1,16 +1,16 @@
+import { main } from '../index.js'
+
 const createTodo = (title, desc, dueDate, priority, notes) => {
-    
-    const addToList = () => {
-        
-    }
 
     return {
         title,
         desc,
         dueDate,
         priority,
-        notes
+        notes,
+        id: main.trackIDs()
     }
+
 };
 
 const addTodo = (obj) => {
