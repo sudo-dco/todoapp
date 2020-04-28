@@ -8,7 +8,7 @@ const func = (() => {
     const createProjectList = (list) => {    // show list of projects
             let listDiv = document.createElement("div");
             listDiv.id = "projects-container";
-            listDiv.innerHTML = "<h2>Projects:</h2>";
+            listDiv.innerHTML = "<h2>Projects</h2>";
             _projectListDiv.append(listDiv);
         
         if (list) {
@@ -35,20 +35,20 @@ const func = (() => {
         })
         newProject.append(header);
 
-        const editBtn = document.createElement("button");
+        const editBtn = document.createElement("span");
         editBtn.id = `edit-btn-${obj.id}`;
+        editBtn.setAttribute("class", "far fa-edit");
         editBtn.classList.add("project-edit-btn");
-        editBtn.innerText = "Edit";
         editBtn.addEventListener("click", function (e) {
             targetId = e.target.id.slice(-2);
             toggleProjectEditForm("open");
         })
         newProject.append(editBtn);
 
-        const delBtn = document.createElement("button");
+        const delBtn = document.createElement("span");
         delBtn.id = `del-btn-${obj.id}`;
+        delBtn.setAttribute("class", "far fa-trash-alt");
         delBtn.classList.add("project-del-btn");
-        delBtn.innerText = "Delete";
         delBtn.addEventListener("click", function (e) {
             targetId = e.target.id.slice(-2);
             delProject(targetId);
@@ -59,20 +59,22 @@ const func = (() => {
     }
 
     const projectEditForm = (() => { // creates edit form
+        const editFormContainer = document.createElement("div");
+        editFormContainer.id = "edit-form-container";
+
         const editForm = document.createElement("div");
         editForm.id = "edit-form";
-        editForm.style.display = "none";
         editForm.innerHTML = `
-            <label for="edit-title">Project Name:</label>
+            <label for="edit-title">Edit Project Name:</label>
         `
         const editTitleBox = document.createElement("input");
         editTitleBox.id = "edit-title";
         editTitleBox.type = "text";
         editForm.append(editTitleBox);
 
-        const editDoneBtn = document.createElement("button");
+        const editDoneBtn = document.createElement("span");
         editDoneBtn.id = "edit-done"
-        editDoneBtn.innerText = "Apply Changes";
+        editDoneBtn.setAttribute("class", "far fa-check-square");
         editDoneBtn.addEventListener("click", function () {
             // check for text
             if (main.inputVaildation(editTitleBox)) {
@@ -82,15 +84,17 @@ const func = (() => {
         })
         editForm.append(editDoneBtn);
 
-        const editCloseBtn = document.createElement("button");
+        const editCloseBtn = document.createElement("span");
         editCloseBtn.id = "edit-close";
-        editCloseBtn.innerText = "Close";
+        editCloseBtn.setAttribute("class", "far fa-times-circle");
         editCloseBtn.addEventListener("click", function () {
             toggleProjectEditForm("close");
         })
         editForm.append(editCloseBtn);
 
-        _projectListDiv.append(editForm);
+        editFormContainer.append(editForm);
+
+        _projectListDiv.append(editFormContainer);
 
     })();
 
@@ -113,7 +117,7 @@ const func = (() => {
     }
 
     const toggleProjectEditForm = (action) => {
-        const editForm = document.getElementById("edit-form");
+        const editForm = document.getElementById("edit-form-container");
 
         if (action == "open") {
             editForm.style.display = "block";
@@ -175,11 +179,12 @@ const func = (() => {
         const projTitle = document.createElement("input");
         projTitle.id = "proj-title";
         projTitle.type = "text";
+        projTitle.value = "New Project";
         projectAddFormContainer.append(projTitle);
 
-        const projAdd = document.createElement("button");
+        const projAdd = document.createElement("span");
         projAdd.id = "proj-add";
-        projAdd.innerText = "Add";
+        projAdd.setAttribute("class", "far fa-plus-square");
         projAdd.addEventListener("click", function () {
             // check for text
             if (main.inputVaildation(projTitle)) {

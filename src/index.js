@@ -43,7 +43,14 @@ const main = (() => {
     }
 
     const generateRNG = () => { // use to assign random ID number to obj
-        return Math.floor((Math.random() * 100) + 1);
+        let num = Math.floor((Math.random() * 100) + 1);
+
+        if (/^\d$/.test(num)) {
+            return `0 + ${num}`;
+        }
+        else {
+            return num;
+        }
     }
 
     const trackIDs = () => {
@@ -89,6 +96,11 @@ const main = (() => {
     const clearInput = (element) => {
         element.value = "";
     }
+
+    document.getElementById("header").innerHTML = `
+        <h3>ODIN PROJECT TODO LIST</h3>
+        <p>Created by Daniel
+    `
 
     console.log(projectList);
 
@@ -167,8 +179,10 @@ const initProjList = (() => { // initialize project list
         todoContainer.innerHTML = "";
 
         // populate new todos
-        todos_dom.func.populateTodoList(currentSelection.todoList, todoContainer);
-
+        if (currentSelection.todoList) {
+            todos_dom.func.populateTodoList(currentSelection.todoList, todoContainer);
+        }
+       
         // close add/expand form if it's open
         todos_dom.func.toggleAddForm("close");
     };

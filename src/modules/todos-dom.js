@@ -6,35 +6,39 @@ const func = (() => {
     const _todosListDiv = document.getElementById("todoslist");
 
     const todoHTMLTemplate = (obj) => {
+        // div for todo and description
+        let newTodoContainer = document.createElement("div");
+        newTodoContainer.classList.add("todo-containers");
+
         let newTodo = document.createElement("div");
         newTodo.id = `todo-${obj.id}`;
         newTodo.classList.add("todo-titles");
 
         const title = document.createElement("h3");
         title.id = `todo-html-title-${obj.id}`;
+        title.classList.add("todo-html-titles");
         title.innerText = `${obj.title}`;
         newTodo.append(title);
 
         newTodo.innerHTML += `
-            <p id="todo-html-desc-${obj.id}">${obj.desc}</p>
-            <p id="todo-html-dueDate-${obj.id}">${formatDate(obj.dueDate)}</p>
-            <p id="todo-html-priority-${obj.id}">${obj.priority}</p>
+            <p id="todo-html-dueDate-${obj.id}" class="todo-html-dueDates">${formatDate(obj.dueDate)}</p>
+            <p id="todo-html-priority-${obj.id}" class="todo-html-priorities">${obj.priority}</p>
         `
 
-        const expandBtn = document.createElement("button");
+        const expandBtn = document.createElement("span");
         expandBtn.id = `todo-expand-btn-${obj.id}`
+        expandBtn.setAttribute("class", "far fa-edit");
         expandBtn.classList.add("todo-expand-btns");
-        expandBtn.innerText = "Expand";
         expandBtn.addEventListener("click", function (e) {
             // open todo add form with info filled in from todo
             expandTodo(e);
         })
         newTodo.append(expandBtn);
 
-        const deleteBtn = document.createElement("button");
+        const deleteBtn = document.createElement("span");
         deleteBtn.id = `todo-delete-btn-${obj.id}`
+        deleteBtn.setAttribute("class", "far fa-trash-alt");
         deleteBtn.classList.add("todo-delete-btns");
-        deleteBtn.innerText = "Delete";
         deleteBtn.addEventListener("click", function (e) {
             // delete todo from obj array
             deleteTodo(e);
@@ -44,6 +48,7 @@ const func = (() => {
         const checkbox = document.createElement("input");
         checkbox.id = `checkbox-${obj.id}`;
         checkbox.type = "checkbox";
+        checkbox.classList.add("todo-checkboxes");
         checkbox.addEventListener("change", function () {
             if (checkbox.checked) {
                 document.getElementById(`todo-html-title-${obj.id}`).classList.add("strike-out");
@@ -52,9 +57,31 @@ const func = (() => {
                 document.getElementById(`todo-html-title-${obj.id}`).classList.remove("strike-out");
             }
         })
+
+        // change checkbox color to priority color
+        if (obj.priority == "low") {
+            checkbox.classList.add("todo-low");
+        }
+        else if (obj.priority == "normal") {
+            checkbox.classList.add("todo-normal");
+        }
+        else {
+            checkbox.classList.add("todo-high");
+        }
+
         newTodo.append(checkbox);
 
-        return newTodo;
+        const desc = document.createElement("p");
+        desc.id = `todo-html-desc-${obj.id}`;
+        desc.classList.add("todo-html-descs");
+        desc.innerText = obj.desc;
+
+        newTodoContainer.append(newTodo);
+        newTodoContainer.append(desc);
+
+        
+
+        return newTodoContainer;
     }
 
     // show todo list in div
@@ -63,12 +90,13 @@ const func = (() => {
             listContainer.id = "todolist-container";
 
             // btn for toggling add form div
-            const showFormBtn = document.createElement("button");
+            const showFormBtn = document.createElement("span");
             showFormBtn.id = "show-form-btn";
-            showFormBtn.innerText = "Add";
+            showFormBtn.setAttribute("class", "far fa-plus-square");
             showFormBtn.addEventListener("click", function() {
                 clearFields();
                 toggleAddForm();
+                toggleEditBtn();
             });
             _todosListDiv.append(showFormBtn);
 
@@ -91,7 +119,7 @@ const func = (() => {
     }
 
     const toggleAddForm = (action) => {
-        const addForm = document.getElementById("todo-addformcontainer");
+        const addForm = document.getElementById("todo-add-form-div");
 
         if (addForm.style.display == "block" || action == "close") {
             addForm.style.display = "none";
@@ -117,32 +145,36 @@ const func = (() => {
 
     // show todo add box
     const createAddForm = () => {
+        const todoAddFormDiv = document.createElement("div");
+        todoAddFormDiv.id = "todo-add-form-div";
+
         const addForm = document.createElement("form");
         addForm.id = "todo-addformcontainer";
         addForm.innerHTML = `
-            <label for="todo-title">Title:</label>
-            <input type="text" id="todo-title">
+                <h3>Add New Todo</h3>
+                <label for="todo-title">Title:</label>
+                <input type="text" id="todo-title">
 
-            <label for="todo-desc">Description:</label>
-            <input type="text" id="todo-desc">
+                <label for="todo-desc">Description:</label>
+                <input type="text" id="todo-desc">
 
-            <label for="todo-date">Date:</label>
-            <input type="date" id="todo-dueDate" value=${new Date()}>
-            
-            <label for="todo-priority">Priority:</label>
-            <select id="todo-priority">
-                <option value="high">High</option>
-                <option value="normal">Normal</option>
-                <option value="low">Low</option>
-            </select>
+                <label for="todo-date">Date:</label>
+                <input type="date" id="todo-dueDate" value=${format(new Date(), "yyyy-MM-dd")}>
+                
+                <label for="todo-priority">Priority:</label>
+                <select id="todo-priority">
+                    <option value="high" selected>High</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                </select>
 
-            <label for="todo-notes">Notes:</label>
-            <textarea id="todo-notes" cols="30" rows="7">Example Notes</textarea>
+                <label for="todo-notes">Notes:</label>
+                <textarea id="todo-notes" cols="30" rows="7">Write a note</textarea>
         `
 
-        const addBtn = document.createElement("button");
+        const addBtn = document.createElement("span");
         addBtn.id = "todo-add-btn";
-        addBtn.innerText = "Add";
+        addBtn.setAttribute("class", "far fa-check-circle");
         addBtn.addEventListener("click", function (e) {
             e.preventDefault();
             addTodo();
@@ -151,9 +183,9 @@ const func = (() => {
         })
         addForm.append(addBtn);
 
-        const editBtn = document.createElement("button");
+        const editBtn = document.createElement("span");
         editBtn.id = "todo-edit-done";
-        editBtn.innerHTML = "Apply Changes";
+        editBtn.setAttribute("class", "far fa-check-circle");
         editBtn.style.display = "none";
         editBtn.addEventListener("click", function (e) {
             //apply changes when done editing todo
@@ -162,7 +194,18 @@ const func = (() => {
         })
         addForm.append(editBtn);
 
-        _todosListDiv.append(addForm);
+        const closeBtn = document.createElement("span");
+        closeBtn.id = "todo-close-btn";
+        closeBtn.setAttribute("class", "far fa-times-circle");
+        closeBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            toggleAddForm("close");
+        })
+        addForm.append(closeBtn);
+
+        todoAddFormDiv.append(addForm)
+
+        _todosListDiv.append(todoAddFormDiv);
     }
 
     // create todo
@@ -239,6 +282,9 @@ const func = (() => {
         // GET ID # FROM EXPAND BTN
         let idNum = form.getAttribute("data-id");
         let todoObj = obj.todoList.find(({ id }) => id == idNum);
+        
+        // get old priority to pass to updatePriorityColor function
+        let oldPriority = todoObj.priority;
 
         // update values in todo object
         for (let element of form.elements) {
@@ -252,6 +298,9 @@ const func = (() => {
 
         // UPDATE HTML
         updateHTML(todoObj);
+
+        // UPDATE PRIORITY CHECKBOX COLOR
+        updatePriorityColor(todoObj, oldPriority);
 
         toggleEditBtn("close")
 
@@ -332,6 +381,17 @@ const func = (() => {
         document.getElementById(`todo-html-desc-${todoObj.id}`).innerText = todoObj["desc"];
         document.getElementById(`todo-html-dueDate-${todoObj.id}`).innerText = formatDate(todoObj["dueDate"]);
         document.getElementById(`todo-html-priority-${todoObj.id}`).innerText = todoObj["priority"];
+    }
+
+    // update checkbox color after user edits priority
+    const updatePriorityColor = (todoObj, oldColor) => {
+        let checkbox = document.getElementById(`checkbox-${todoObj.id}`);
+
+        // remove class associated with priority color
+        checkbox.classList.remove(`todo-${oldColor}`);
+
+        // add new priority color class
+        checkbox.classList.add(`todo-${todoObj.priority}`);
     }
     
     const clearFields = () => {
